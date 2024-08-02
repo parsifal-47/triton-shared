@@ -30,12 +30,7 @@ torch_dtypes = ['bool'] + int_dtypes + ['uint8'] + float_dtypes + ['bfloat16']
 num_ctas_list = [1]
 
 GPU_DIALECT = "triton_gpu"
-if is_interpreter():
-    THREADS_PER_WARP = 1
-elif is_hip():
-    THREADS_PER_WARP = triton.runtime.driver.active.get_current_target().warp_size
-else:
-    THREADS_PER_WARP = 32
+THREADS_PER_WARP = 1
 
 
 def _bitwidth(dtype: str) -> int:
@@ -115,18 +110,10 @@ def to_numpy(x):
 
 
 def patch_kernel(template, to_replace):
-    if is_interpreter():
-        local_namespace = {}
-        src = textwrap.dedent(inspect.getsource(template.fn))
-        for k, v in to_replace.items():
-            src = src.replace(k, v)
-        exec(src, globals(), local_namespace)
-        return local_namespace[template.fn.__name__]
-    else:
-        kernel = triton.JITFunction(template.fn)
-        for key, value in to_replace.items():
-            kernel.src = kernel.src.replace(key, value)
-        return kernel
+    kernel = triton.JITFunction(template.fn)
+    for key, value in to_replace.items():
+        kernel.src = kernel.src.replace(key, value)
+    return kernel
 
 
 
@@ -140,9 +127,6 @@ def check_type_supported(dtype, device):
             pytest.skip("bfloat16 is only supported on NVGPU with cc >= 80")
         if cc[0] < 9 and dtype in {tl.float8e4nv, "float8e4nv", "float8_e4m3fn"}:
             pytest.skip("float8e4nv is only supported on NVGPU with cc >= 90")
-    if is_interpreter():
-        if dtype in [tl.bfloat16, "bfloat16", torch.bfloat16]:
-            pytest.skip("bfloat16 is not supported in the interpreter")
 
 
 def _binary_op_dtype_override(a: str, b: str) -> Optional[np.dtype]:
