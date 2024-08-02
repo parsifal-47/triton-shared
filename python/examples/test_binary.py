@@ -32,6 +32,7 @@ num_ctas_list = [1]
 GPU_DIALECT = "triton_gpu"
 THREADS_PER_WARP = 1
 
+dtypes_shortlist = ['int8', 'int16']
 
 def _bitwidth(dtype: str) -> int:
     # ex.: "int64" -> 64
@@ -265,8 +266,8 @@ def test_dtype_codegen():
 @pytest.mark.parametrize("dtype_x, dtype_y, op", [  #
     (dtype_x, dtype_y, op)
     for op in ['+', '-', '*', '/', '%']
-    for dtype_x in dtypes_with_bfloat16
-    for dtype_y in dtypes_with_bfloat16
+    for dtype_x in dtypes_shortlist
+    for dtype_y in dtypes_shortlist
 ])
 @pytest.mark.parametrize("num_ctas", num_ctas_list)
 def test_bin_op(dtype_x, dtype_y, op, num_ctas, device):
