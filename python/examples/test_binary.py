@@ -25,6 +25,9 @@ dtypes_with_bfloat16 = dtypes + ['bfloat16']
 torch_float8_dtypes = ['float8_e4m3fn', 'float8_e5m2']
 torch_dtypes = ['bool'] + int_dtypes + ['uint8'] + float_dtypes + ['bfloat16']
 
+# TODO: enable multiple cta cluster testing.
+# num_ctas_list = [1, 4] if torch.cuda.get_device_capability()[0] == 9 else [1]
+num_ctas_list = [1]
 
 def _bitwidth(dtype: str) -> int:
     # ex.: "int64" -> 64
