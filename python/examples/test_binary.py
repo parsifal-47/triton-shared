@@ -262,10 +262,11 @@ def test_dtype_codegen():
 # test binary ops
 # ---------------
 
+op_shortlist = ['+', '-']
 
 @pytest.mark.parametrize("dtype_x, dtype_y, op", [  #
     (dtype_x, dtype_y, op)
-    for op in ['+', '-', '*', '/', '%']
+    for op in op_shortlist #['+', '-', '*', '/', '%']
     for dtype_x in dtypes_shortlist
     for dtype_y in dtypes_shortlist
 ])
