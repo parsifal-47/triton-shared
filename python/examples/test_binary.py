@@ -29,6 +29,15 @@ torch_dtypes = ['bool'] + int_dtypes + ['uint8'] + float_dtypes + ['bfloat16']
 # num_ctas_list = [1, 4] if torch.cuda.get_device_capability()[0] == 9 else [1]
 num_ctas_list = [1]
 
+GPU_DIALECT = "triton_gpu"
+if is_interpreter():
+    THREADS_PER_WARP = 1
+elif is_hip():
+    THREADS_PER_WARP = triton.runtime.driver.active.get_current_target().warp_size
+else:
+    THREADS_PER_WARP = 32
+
+
 def _bitwidth(dtype: str) -> int:
     # ex.: "int64" -> 64
     return int(re.search(r'(\d+)$', dtype).group(1))
