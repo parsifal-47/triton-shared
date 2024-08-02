@@ -262,7 +262,6 @@ def test_dtype_codegen():
 # ---------------
 
 
-@pytest.mark.interpreter
 @pytest.mark.parametrize("dtype_x, dtype_y, op", [  #
     (dtype_x, dtype_y, op)
     for op in ['+', '-', '*', '/', '%']
