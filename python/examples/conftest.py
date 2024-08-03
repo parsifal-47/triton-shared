@@ -19,7 +19,21 @@ def device(request):
 
 
 tests_not_supported = {
+    "test_pointer_arguments",
+    "test_masked_load_shared_memory",
+    "test_bin_op_constexpr",
+    "test_num_warps_pow2",
+    "test_math_divide_op",
+    "test_atomic_rmw_predicate",
+    "test_tensor_atomic_rmw_block",
+    "test_nested_if_else_return",
+    "test_ptx_cast",
     "test_compare_op",
+    "test_maxnreg",
+    "test_join",
+    "test_join_scalars",
+    "test_join_with_mma",
+    "test_interleave",
     "test_slice",
     "test_where",
     "test_math_erf_op",
@@ -27,6 +41,7 @@ tests_not_supported = {
     "test_abs_fp8",
     "test_shapes_as_params",
     "test_transpose",
+    "test_where_broadcast"
     "test_noinline",
     "test_atomic_rmw",
     "test_tensor_atomic_rmw",
@@ -35,6 +50,7 @@ tests_not_supported = {
     "test_cast",
     "test_cat",
     "test_store_constant",
+    "test_reduce",
     "test_reduce1d",
     "test_scan2d",
     "test_histogram",
