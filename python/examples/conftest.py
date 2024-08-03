@@ -41,7 +41,7 @@ tests_not_supported = {
     "test_abs_fp8",
     "test_shapes_as_params",
     "test_transpose",
-    "test_where_broadcast"
+    "test_where_broadcast",
     "test_noinline",
     "test_atomic_rmw",
     "test_tensor_atomic_rmw",
