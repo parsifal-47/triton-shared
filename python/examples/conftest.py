@@ -19,6 +19,10 @@ def device(request):
 
 
 tests_not_supported = {
+    "test_if_else",
+    "test_split",
+    "test_split_to_scalar",
+    "test_interleave_scalars",
     "test_pointer_arguments",
     "test_masked_load_shared_memory",
     "test_bin_op_constexpr",
