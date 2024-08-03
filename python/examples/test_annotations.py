@@ -1,11 +1,8 @@
 from __future__ import annotations
 import torch
 import triton
-from triton.backends.triton_shared.driver import CPUDriver
 import triton.language as tl
 import pytest
-
-triton.runtime.driver.set_active(CPUDriver())
 
 def annotated_function(return_type=None, **arg_types):
     """A decorator to add annotations to a function."""
@@ -37,13 +34,13 @@ def test_int_annotation(signed, width):
 
 
 # Test that unknown annotations do not emit an error
-def test_unknown_annotation():
+def test_unknown_annotation(device):
 
     @triton.jit
     def _kernel(X: torch.Tensor, N: int, BLOCK_SIZE: tl.constexpr):
         pass
 
-    x = torch.empty(1, device="cpu")
+    x = torch.empty(1, device=device)
     _kernel[(1, )](x, x.shape[0], 32)
     try:
         _kernel[(1, )](x.shape[0], x.shape[0], 32)
