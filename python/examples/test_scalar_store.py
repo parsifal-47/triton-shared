@@ -17,7 +17,7 @@ def reduce_kernel_2d(
         base_ptr += 1
 
 
-def test():
+def test(device):
     BLOCK_SIZE = 8
     x = torch.full([BLOCK_SIZE], -1, device=device, dtype=torch.float32)
     output = torch.full((BLOCK_SIZE,), -99, device=x.device, dtype=x.dtype)
