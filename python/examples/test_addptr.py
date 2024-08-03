@@ -32,6 +32,7 @@ def test(device):
     print(output)
     assert torch.equal(input, output)
 
+    # TODO: need to check some conditions otherwise the code below is meaningless
     src = triton.compiler.ASTSource(
         fn=addptr,
         signature="*fp32,*fp32",
@@ -40,4 +41,3 @@ def test(device):
         src,
     )
     print(ret.asm["ttir"])
-    print('Pass')
