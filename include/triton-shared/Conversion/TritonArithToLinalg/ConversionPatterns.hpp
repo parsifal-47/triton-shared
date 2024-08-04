@@ -835,6 +835,28 @@ struct BitcastConverter : public OpConversionPattern<triton::BitcastOp> {
   LogicalResult
   matchAndRewrite(triton::BitcastOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
+    auto srcType = op.getOperand().getType();
+    auto dstType = op.getResult().getType();
+
+    if ((isa<mlir::triton::PointerType>(dstType)) || (isa<mlir::triton::PointerType>(srcType))) {
+      Value deref = op.getOperand();
+
+      if (auto srcPointer = dyn_cast<mlir::triton::PointerType>(op.getOperand().getType())) {
+        auto srcElementType = srcPointer.getPointeeType();
+        deref = rewriter.create<LLVM::LoadOp>(op.getLoc(), srcElementType, op.getOperand());
+      }
+
+      Value bitcasted = rewriter.create<arith::BitcastOp>(op.getLoc(), dstElementType, deref);
+
+      if (isa<mlir::triton::PointerType>(dstType)) {
+        Value dstPtr = rewriter.create<LLVM::StoreOp>(op.getLoc(), dstType, bitcasted);
+        rewriter.replaceOp(op, dstPtr);
+      } else {
+        rewriter.replaceOp(op, bitcasted);
+      }
+      return success();
+    }
+
     auto arithBitcast = rewriter.create<arith::BitcastOp>(
         op.getLoc(), op.getType(), op.getOperand());
 
