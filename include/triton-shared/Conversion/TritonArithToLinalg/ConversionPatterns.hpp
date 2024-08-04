@@ -843,13 +843,13 @@ struct BitcastConverter : public OpConversionPattern<triton::BitcastOp> {
 
       if (auto srcPointer = dyn_cast<mlir::triton::PointerType>(op.getOperand().getType())) {
         auto srcElementType = srcPointer.getPointeeType();
-        deref = rewriter.create<LLVM::LoadOp>(op.getLoc(), srcElementType, op.getOperand());
+        deref = rewriter.create<llvm::LoadOp>(op.getLoc(), srcElementType, op.getOperand());
       }
 
       Value bitcasted = rewriter.create<arith::BitcastOp>(op.getLoc(), dstElementType, deref);
 
       if (isa<mlir::triton::PointerType>(dstType)) {
-        Value dstPtr = rewriter.create<LLVM::StoreOp>(op.getLoc(), dstType, bitcasted);
+        Value dstPtr = rewriter.create<llvm::StoreOp>(op.getLoc(), dstType, bitcasted);
         rewriter.replaceOp(op, dstPtr);
       } else {
         rewriter.replaceOp(op, bitcasted);
