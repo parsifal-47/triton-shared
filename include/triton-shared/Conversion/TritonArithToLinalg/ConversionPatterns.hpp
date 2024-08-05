@@ -903,8 +903,8 @@ struct ClampConverter : public OpConversionPattern<triton::ClampFOp> {
     Value min = adaptor.getOperands()[1];
     Value max = adaptor.getOperands()[2];
 
-    Value maxMin = builder.create<arith::MaxFOp>(loc, x, min);
-    Value clamp = builder.create<arith::MinFOp>(loc, maxMin, max);
+    Value maxMin = rewriter.create<arith::MaximumFOp>(loc, x, min);
+    Value clamp = rewriter.create<arith::MinimumFOp>(loc, maxMin, max);
     rewriter.replaceOp(op, clamp);
 
     return success();
