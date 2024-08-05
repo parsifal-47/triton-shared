@@ -857,13 +857,13 @@ struct FpToFpConverter : public OpConversionPattern<triton::FpToFpOp> {
   LogicalResult
   matchAndRewrite(triton::FpToFpOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto roundingMode = triton::RoundingModeAttr::RTNE; // default
+    auto roundingMode = triton::RoundingMode::RTNE; // default
 
-    if (auto roundingModeAttr = op->getAttrOfType<<triton::RoundingModeAttr>("rounding")) {
+    if (auto roundingModeAttr = op->getAttrOfType<triton::RoundingModeAttr>("rounding")) {
       roundingModeAttr = roundingModeAttr.getValue();
     }
 
-    assert(roundingMode != triton::RoundingModeAttr::RTZ &&
+    assert(roundingMode != triton::RoundingMode::RTZ &&
            "Rounding Towards Zero is not supported");
 
     Type resultType = op.getResult().getType();
