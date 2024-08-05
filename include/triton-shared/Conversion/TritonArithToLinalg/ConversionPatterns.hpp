@@ -921,6 +921,76 @@ struct CatConverter : public OpConversionPattern<triton::CatOp> {
   }
 };
 
+struct SplitConverter : public OpConversionPattern<triton::SplitOp> {
+  using OpConversionPattern<triton::SplitOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::SplitOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    Location loc = op.getLoc();
+    Value input = adaptor.getOperand();
+    auto inputType = cast<RankedTensorType>(input.getType());
+    int64_t rank = inputType.getRank();
+    auto shape = inputType.getShape();
+
+    if (shape.back() != 2) {
+      return op.emitError("The last dimension size exactly 2 per triton spec.");
+    }
+
+    Type resultType = op.getResults().front().getType();
+
+    SmallVector<Value, 2> results;
+    for (int64_t i = 0; i < 2; ++i) {
+      auto offsetVal = rewriter.create<arith::ConstantIndexOp>(loc, i);
+
+      SmallVector<OpFoldResult, 4> offsets(rank, rewriter.getIndexAttr(0));
+      SmallVector<OpFoldResult, 4> sizes(rank, rewriter.getIndexAttr(1));
+      SmallVector<OpFoldResult, 4> strides(rank, rewriter.getIndexAttr(1));
+
+      offsets[rank - 1] = offsetVal;
+      sizes[rank - 1] = rewriter.getIndexAttr(1);
+
+      Value slice = rewriter.create<tensor::ExtractSliceOp>(
+          loc, resultType, input, offsets, sizes, strides);
+
+      results.push_back(slice);
+    }
+
+    rewriter.replaceOp(op, results);
+    return success();
+  }
+};
+
+struct JoinConverter : public OpConversionPattern<triton::JoinOp> {
+  using OpConversionPattern<triton::JoinOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::JoinOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    ValueRange inputs = op.getOperands();
+
+    auto resultType = op.getResult().getType().cast<RankedTensorType>();
+    auto resultShape = resultType.getShape();
+
+    auto loc = op.getLoc();
+    auto alloc = rewriter.create<AllocOp>(loc, resultType);
+
+    for (unsigned i = 0; i < inputs.size(); ++i) {
+      SmallVector<Value, 4> indices;
+      for (size_t j = 0; j < resultShape.size() - 1; ++j) {
+        indices.push_back(rewriter.create<ConstantIndexOp>(loc, 0));
+      }
+      indices.push_back(rewriter.create<ConstantIndexOp>(loc, i));
+
+      rewriter.create<InsertSliceOp>(loc, inputs[i], alloc, indices);
+    }
+
+    rewriter.replaceOp(op, alloc);
+
+    return success();
+  }
+};
+
 template <typename OpFrom, typename OpTo>
 struct GeneralOpConverter : public OpConversionPattern<OpFrom> {
   using OpConversionPattern<OpFrom>::OpConversionPattern;
