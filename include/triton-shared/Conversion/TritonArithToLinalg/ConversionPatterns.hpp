@@ -859,7 +859,7 @@ struct FpToFpConverter : public OpConversionPattern<triton::FpToFpOp> {
     auto roundingMode = triton::RoundingMode::RTNE; // default
 
     if (auto roundingModeAttr = op->getAttrOfType<triton::RoundingModeAttr>("rounding")) {
-      roundingModeAttr = roundingModeAttr.getValue();
+      roundingMode = roundingModeAttr.getValue();
     }
 
     assert(roundingMode != triton::RoundingMode::RTZ &&
