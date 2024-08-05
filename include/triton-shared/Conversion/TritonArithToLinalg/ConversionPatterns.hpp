@@ -996,14 +996,27 @@ struct JoinConverter : public OpConversionPattern<triton::JoinOp> {
   }
 };
 
-template <typename OpFrom, typename OpTo>
-struct GeneralOpConverter : public OpConversionPattern<OpFrom> {
-  using OpConversionPattern<OpFrom>::OpConversionPattern;
+struct PreciseSqrtConverter : public OpConversionPattern<triton::PreciseSqrtOp> {
+  using OpConversionPattern<triton::PreciseSqrtOp>::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(OpFrom op, OpAdaptor adaptor,
+  matchAndRewrite(triton::PreciseSqrtOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto replacement = rewriter.create<OpTo>(
+    auto replacement = rewriter.create<math::SqrtOp>(
+        op.getLoc(), adaptor.getOperands());
+
+    rewriter.replaceOp(op, replacement);
+    return success();
+  }
+};
+
+struct PreciseDivConverter : public OpConversionPattern<triton::PreciseDivFOp> {
+  using OpConversionPattern<triton::PreciseDivFOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::PreciseDivFOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto replacement = rewriter.create<arith::DivFOp>(
         op.getLoc(), adaptor.getOperands());
 
     rewriter.replaceOp(op, replacement);
