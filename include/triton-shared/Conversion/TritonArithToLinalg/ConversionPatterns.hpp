@@ -133,6 +133,13 @@ static Value getTransposedValue(Value source, const Location loc,
   return transpose;
 }
 
+// for IntLike and FloatLike types
+static unsigned getBitWidth(Type a) {
+  if (auto type = dyn_cast<TensorType>(a)) {
+    return type.getElementType().getIntOrFloatBitWidth();
+  return a.getIntOrFloatBitWidth();
+}
+
 //===----------------------------------------------------------------------===//
 // Op Lowering Patterns
 //===----------------------------------------------------------------------===//
@@ -843,32 +850,88 @@ struct BitcastConverter : public OpConversionPattern<triton::BitcastOp> {
   }
 };
 
-struct PreciseSqrtConverter : public OpConversionPattern<triton::PreciseSqrtOp> {
-  using OpConversionPattern<triton::PreciseSqrtOp>::OpConversionPattern;
+struct FpToFpConverter : public OpConversionPattern<triton::FpToFpOp> {
+  using OpConversionPattern<triton::FpToFpOp>::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(triton::PreciseSqrtOp op, OpAdaptor adaptor,
+  matchAndRewrite(triton::FpToFpOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    Location loc = op.getLoc();
+    auto roundingMode = triton::RoundingModeAttr::RTNE; // default
 
-    auto result = rewriter.create<math::SqrtOp>(loc, adaptor.getOperands());
+    if (auto roundingModeAttr = op->getAttrOfType<<triton::RoundingModeAttr>("rounding")) {
+      roundingModeAttr = roundingModeAttr.getValue();
+    }
+
+    assert(roundingMode != triton::RoundingModeAttr::RTZ &&
+           "Rounding Towards Zero is not supported");
+
+    Type resultType = op.getResult().getType();
+
+    unsigned operandWidth = getBitWidth(op.getOperand().getType());
+    unsigned resultWidth = getBitWidth(resultType);
+
+    if (operandWidth > resultWidth) {
+      Value truncatedValue = builder.create<arith::TruncFOp>(func.getLoc(), resultType, op.getOperand());
+      rewriter.replaceOp(op, truncatedValue);
+      return success();
+    }
+
+    Value extendedValue = builder.create<arith::ExtFOp>(func.getLoc(), resultType, op.getOperand());
+    rewriter.replaceOp(op, extendedValue);
+
+    return success();
+  }
+};
+
+struct ClampConverter : public OpConversionPattern<triton::ClampFOp> {
+  using OpConversionPattern<triton::ClampFOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::ClampFOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    bool propagateNan = false;
+
+    if (auto propagateNanAttr = op->getAttrOfType<<triton::PropagateNanAttr>("propagateNan")) {
+      propagateNan = propagateNanAttr.getValue() == triton::PropagateNanAttr::ALL;
+    }
+
+    assert(!propagateNan &&
+           "PropagateNan is not supported");
+
+    Value maxMin = builder.create<arith::MaxFOp>(loc, value, min);
+    Value clamp = builder.create<arith::MinFOp>(loc, maxMin, max);
+    rewriter.replaceOp(op, clamp);
+
+    return success();
+  }
+};
+
+struct CatConverter : public OpConversionPattern<triton::CatOp> {
+  using OpConversionPattern<triton::CatOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::CatOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+
+    auto resultType = op.getType();
+    Value result = rewriter.create<tensor::ConcatOp>(op.getLoc(), resultType, 0, op.getOperands());
     rewriter.replaceOp(op, result);
 
     return success();
   }
 };
 
-struct PreciseSqrtConverter : public OpConversionPattern<triton::PreciseSqrtOp> {
-  using OpConversionPattern<triton::PreciseSqrtOp>::OpConversionPattern;
+template <typename OpFrom, typename OpTo>
+struct GeneralOpConverter : public OpConversionPattern<OpFrom> {
+  using OpConversionPattern<OpFrom>::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(triton::PreciseSqrtOp op, OpAdaptor adaptor,
+  matchAndRewrite(OpFrom op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    Location loc = op.getLoc();
+    auto replacement = rewriter.create<OpTo>(
+        op.getLoc(), adaptor.getOperands());
 
-    auto mulResult = rewriter.create<math::SqrtOp>(loc, adaptor.getOperands());
-    rewriter.replaceOp(op, mulResult.getHigh());
-
+    rewriter.replaceOp(op, replacement);
     return success();
   }
 };

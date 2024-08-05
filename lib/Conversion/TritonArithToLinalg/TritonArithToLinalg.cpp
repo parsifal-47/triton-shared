@@ -60,7 +60,11 @@ void mlir::triton::populateTritonArithToLinalgConversionPatterns(
   patterns.add<ExpandDimsConverter>(patterns.getContext());
   patterns.add<BitcastConverter>(patterns.getContext());
   patterns.add<MulHiUIOpConverter>(patterns.getContext());
-  patterns.add<PreciseSqrtConverter>(patterns.getContext());
+  patterns.add<GeneralOpConverter<Triton::PreciseSqrtOp, math::SqrtOp>>(patterns.getContext());
+  patterns.add<GeneralOpConverter<Triton::PreciseDivFOp, arith::DivFOp>>(patterns.getContext());
+  patterns.add<FpToFpConverter>(patterns.getContext());
+  patterns.add<ClampConverter>(patterns.getContext());
+  patterns.add<CatConverter>(patterns.getContext());
   patterns.add<MatmulConverter>(patterns.getContext());
   patterns.add<SplatConverter>(patterns.getContext());
   patterns.add<DenseConstantConverter>(patterns.getContext());
