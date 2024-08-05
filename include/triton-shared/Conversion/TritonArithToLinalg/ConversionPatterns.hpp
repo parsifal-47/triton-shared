@@ -871,12 +871,12 @@ struct FpToFpConverter : public OpConversionPattern<triton::FpToFpOp> {
     unsigned resultWidth = getBitWidth(resultType);
 
     if (operandWidth > resultWidth) {
-      Value truncatedValue = builder.create<arith::TruncFOp>(func.getLoc(), resultType, op.getOperand());
+      Value truncatedValue = rewriter.create<arith::TruncFOp>(op.getLoc(), resultType, op.getOperand());
       rewriter.replaceOp(op, truncatedValue);
       return success();
     }
 
-    Value extendedValue = builder.create<arith::ExtFOp>(func.getLoc(), resultType, op.getOperand());
+    Value extendedValue = rewriter.create<arith::ExtFOp>(op.getLoc(), resultType, op.getOperand());
     rewriter.replaceOp(op, extendedValue);
 
     return success();
@@ -891,8 +891,8 @@ struct ClampConverter : public OpConversionPattern<triton::ClampFOp> {
                   ConversionPatternRewriter &rewriter) const override {
     bool propagateNan = false;
 
-    if (auto propagateNanAttr = op->getAttrOfType<<triton::PropagateNanAttr>("propagateNan")) {
-      propagateNan = propagateNanAttr.getValue() == triton::PropagateNanAttr::ALL;
+    if (auto propagateNanAttr = op->getAttrOfType<triton::PropagateNanAttr>("propagateNan")) {
+      propagateNan = propagateNanAttr.getValue() == triton::PropagateNan::ALL;
     }
 
     assert(!propagateNan &&
