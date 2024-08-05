@@ -943,6 +943,7 @@ struct SplitConverter : public OpConversionPattern<triton::SplitOp> {
     }
 
     Type resultType = op.getResults().front().getType();
+    auto resultTensor = cast<RankedTensorType>(resultType);
 
     SmallVector<Value, 2> results;
     for (int64_t i = 0; i < 2; ++i) {
@@ -954,7 +955,7 @@ struct SplitConverter : public OpConversionPattern<triton::SplitOp> {
       sizes[rank - 1] = rewriter.getIndexAttr(1);
 
       Value slice = rewriter.create<tensor::ExtractSliceOp>(
-          loc, resultType, input, offsets, sizes, strides);
+          loc, resultTensor, input, offsets, sizes, strides);
 
       results.push_back(slice);
     }
