@@ -978,7 +978,7 @@ struct JoinConverter : public OpConversionPattern<triton::JoinOp> {
     auto resultShape = resultType.getShape();
 
     auto loc = op.getLoc();
-    auto alloc = rewriter.create<AllocOp>(loc, resultType);
+    auto alloc = rewriter.create<memref::AllocOp>(loc,  MemRefType::get(resultShape, resultType.getElementType()));
 
     for (unsigned i = 0; i < inputs.size(); ++i) {
       SmallVector<Value, 4> indices;
