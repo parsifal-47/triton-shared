@@ -50,6 +50,7 @@ void mlir::triton::populateTritonToLinalgConversionPatterns(
   patterns.add<ExpandDimsConverter>(patterns.getContext());
   patterns.add<BitcastConverter>(patterns.getContext());
   patterns.add<MulHiUIOpConverter>(patterns.getContext());
+  patterns.add<PreciseSqrtConverter>(patterns.getContext());
   patterns.add<AssertConverter>(patterns.getContext());
   patterns.add<MatmulConverter>(patterns.getContext());
   patterns.add<SplatConverter>(patterns.getContext());

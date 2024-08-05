@@ -843,6 +843,36 @@ struct BitcastConverter : public OpConversionPattern<triton::BitcastOp> {
   }
 };
 
+struct PreciseSqrtConverter : public OpConversionPattern<triton::PreciseSqrtOp> {
+  using OpConversionPattern<triton::PreciseSqrtOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::PreciseSqrtOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    Location loc = op.getLoc();
+
+    auto result = rewriter.create<math::SqrtOp>(loc, adaptor.getOperands());
+    rewriter.replaceOp(op, result);
+
+    return success();
+  }
+};
+
+struct PreciseSqrtConverter : public OpConversionPattern<triton::PreciseSqrtOp> {
+  using OpConversionPattern<triton::PreciseSqrtOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::PreciseSqrtOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    Location loc = op.getLoc();
+
+    auto mulResult = rewriter.create<math::SqrtOp>(loc, adaptor.getOperands());
+    rewriter.replaceOp(op, mulResult.getHigh());
+
+    return success();
+  }
+};
+
 struct MulHiUIOpConverter : public OpConversionPattern<triton::MulhiUIOp> {
   using OpConversionPattern<triton::MulhiUIOp>::OpConversionPattern;
 
