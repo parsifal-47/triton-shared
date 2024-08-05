@@ -138,6 +138,7 @@ static unsigned getBitWidth(Type a) {
   if (auto type = dyn_cast<TensorType>(a)) {
     return type.getElementType().getIntOrFloatBitWidth();
   return a.getIntOrFloatBitWidth();
+  }
 }
 
 //===----------------------------------------------------------------------===//
