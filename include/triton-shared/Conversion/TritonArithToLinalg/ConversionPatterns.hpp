@@ -980,13 +980,7 @@ struct JoinConverter : public OpConversionPattern<triton::JoinOp> {
     auto alloc = rewriter.create<memref::AllocOp>(loc,  MemRefType::get(resultShape, resultType.getElementType()));
 
     for (unsigned i = 0; i < inputs.size(); ++i) {
-      SmallVector<Value, 4> indices;
-      for (size_t j = 0; j < resultShape.size() - 1; ++j) {
-        indices.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 0));
-      }
-      indices.push_back(rewriter.create<arith::ConstantIndexOp>(loc, i));
-
-      rewriter.create<tensor::InsertSliceOp>(loc, inputs[i], alloc, indices);
+      rewriter.create<tensor::InsertSliceOp>(loc, inputs[i], alloc);
     }
 
     rewriter.replaceOp(op, alloc);
