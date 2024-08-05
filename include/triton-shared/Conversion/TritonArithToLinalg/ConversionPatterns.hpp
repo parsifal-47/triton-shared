@@ -933,7 +933,7 @@ struct SplitConverter : public OpConversionPattern<triton::SplitOp> {
   matchAndRewrite(triton::SplitOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     Location loc = op.getLoc();
-    Value input = adaptor.getOperand();
+    Value input = op.getOperand();
     auto inputType = cast<RankedTensorType>(input.getType());
     int64_t rank = inputType.getRank();
     auto shape = inputType.getShape();
@@ -946,13 +946,11 @@ struct SplitConverter : public OpConversionPattern<triton::SplitOp> {
 
     SmallVector<Value, 2> results;
     for (int64_t i = 0; i < 2; ++i) {
-      auto offsetVal = rewriter.create<arith::ConstantIndexOp>(loc, i);
-
       SmallVector<OpFoldResult, 4> offsets(rank, rewriter.getIndexAttr(0));
       SmallVector<OpFoldResult, 4> sizes(rank, rewriter.getIndexAttr(1));
       SmallVector<OpFoldResult, 4> strides(rank, rewriter.getIndexAttr(1));
 
-      offsets[rank - 1] = offsetVal;
+      offsets[rank - 1] = rewriter.getIndexAttr(i);
       sizes[rank - 1] = rewriter.getIndexAttr(1);
 
       Value slice = rewriter.create<tensor::ExtractSliceOp>(
