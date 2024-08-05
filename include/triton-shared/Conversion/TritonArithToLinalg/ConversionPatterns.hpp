@@ -974,7 +974,7 @@ struct JoinConverter : public OpConversionPattern<triton::JoinOp> {
                   ConversionPatternRewriter &rewriter) const override {
     ValueRange inputs = op.getOperands();
 
-    auto resultType = op.getResult().getType().cast<RankedTensorType>();
+    auto resultType = cast<RankedTensorType>(op.getResult().getType());
     auto resultShape = resultType.getShape();
 
     auto loc = op.getLoc();
@@ -987,7 +987,7 @@ struct JoinConverter : public OpConversionPattern<triton::JoinOp> {
       }
       indices.push_back(rewriter.create<ConstantIndexOp>(loc, i));
 
-      rewriter.create<InsertSliceOp>(loc, inputs[i], alloc, indices);
+      rewriter.create<tensor::InsertSliceOp>(loc, inputs[i], alloc, indices);
     }
 
     rewriter.replaceOp(op, alloc);
