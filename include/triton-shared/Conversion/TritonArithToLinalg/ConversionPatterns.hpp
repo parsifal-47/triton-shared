@@ -133,6 +133,13 @@ static Value getTransposedValue(Value source, const Location loc,
   return transpose;
 }
 
+// for IntLike and FloatLike types
+static unsigned getBitWidth(Type a) {
+  if (auto type = dyn_cast<TensorType>(a))
+    return type.getElementType().getIntOrFloatBitWidth();
+  return a.getIntOrFloatBitWidth();
+}
+
 //===----------------------------------------------------------------------===//
 // Op Lowering Patterns
 //===----------------------------------------------------------------------===//
@@ -839,6 +846,110 @@ struct BitcastConverter : public OpConversionPattern<triton::BitcastOp> {
         op.getLoc(), op.getType(), op.getOperand());
 
     rewriter.replaceOp(op, arithBitcast.getResult());
+    return success();
+  }
+};
+
+struct CatConverter : public OpConversionPattern<triton::CatOp> {
+  using OpConversionPattern<triton::CatOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::CatOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+
+    auto resultType = op.getType();
+    Value result = rewriter.create<tensor::ConcatOp>(op.getLoc(), resultType, 0, op.getOperands());
+    rewriter.replaceOp(op, result);
+
+    return success();
+  }
+};
+
+struct SplitConverter : public OpConversionPattern<triton::SplitOp> {
+  using OpConversionPattern<triton::SplitOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::SplitOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    Location loc = op.getLoc();
+    Value input = op.getOperand();
+    auto inputType = cast<RankedTensorType>(input.getType());
+    int64_t rank = inputType.getRank();
+    auto shape = inputType.getShape();
+
+    if (shape.back() != 2) {
+      return op.emitError("The last dimension size exactly 2 per triton spec.");
+    }
+
+    Type resultType = op.getResults().front().getType();
+    auto resultTensor = cast<RankedTensorType>(resultType);
+
+    SmallVector<Value, 2> results;
+    for (int64_t i = 0; i < 2; ++i) {
+      SmallVector<Value, 4> offsets, sizes, strides;
+      std::vector<int64_t> stridesInt(rank, 0);
+
+      int64_t currentStride = 1;
+      for (size_t i = shape.size(); i > 0; --i) {
+        stridesInt[i - 1] = currentStride;
+        currentStride *= stridesInt[i - 1];
+      }
+
+      for (size_t j = 0; j < shape.size() - 1; ++j) {
+        offsets.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 0));
+        sizes.push_back(rewriter.create<arith::ConstantIndexOp>(loc, shape[j]));
+        strides.push_back(rewriter.create<arith::ConstantIndexOp>(loc, stridesInt[j]));
+      }
+
+      offsets.push_back(rewriter.create<arith::ConstantIndexOp>(loc, i));
+      sizes.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
+      strides.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
+
+      Value slice = rewriter.create<tensor::ExtractSliceOp>(
+          loc, resultTensor, input, offsets, sizes, strides);
+
+      results.push_back(slice);
+    }
+
+    rewriter.replaceOp(op, results);
+    return success();
+  }
+};
+
+struct JoinConverter : public OpConversionPattern<triton::JoinOp> {
+  using OpConversionPattern<triton::JoinOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::JoinOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    ValueRange inputs = op.getOperands();
+
+    auto resultType = cast<RankedTensorType>(op.getResult().getType());
+    auto resultShape = resultType.getShape();
+
+    auto loc = op.getLoc();
+    auto alloc = rewriter.create<memref::AllocOp>(loc,  MemRefType::get(resultShape, resultType.getElementType()));
+
+    for (unsigned i = 0; i < inputs.size(); ++i) {
+      SmallVector<Value, 4> offsets, sizes, strides;
+
+      for (size_t j = 0; j < resultShape.size() - 1; ++j) {
+        offsets.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 0));
+        sizes.push_back(rewriter.create<arith::ConstantIndexOp>(loc, resultShape[j]));
+        strides.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
+      }
+
+      // Set offset for the last dimension to the current index
+      offsets.push_back(rewriter.create<arith::ConstantIndexOp>(loc, i));
+      // Set size for the last dimension to 1
+      sizes.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
+      strides.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
+
+      rewriter.create<tensor::InsertSliceOp>(loc, inputs[i], alloc, offsets, sizes, strides);
+    }
+
+    rewriter.replaceOp(op, alloc);
+
     return success();
   }
 };
