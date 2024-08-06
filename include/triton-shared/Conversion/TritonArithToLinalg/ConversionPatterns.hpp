@@ -948,11 +948,18 @@ struct SplitConverter : public OpConversionPattern<triton::SplitOp> {
     SmallVector<Value, 2> results;
     for (int64_t i = 0; i < 2; ++i) {
       SmallVector<Value, 4> offsets, sizes, strides;
+      std::vector<int64_t> stridesInt(rank, 0);
+
+      int64_t currentStride = 1;
+      for (size_t i = shape.size(); i > 0; --i) {
+        stridesInt[i - 1] = currentStride;
+        currentStride *= stridesInt[i - 1];
+      }
 
       for (size_t j = 0; j < shape.size() - 1; ++j) {
         offsets.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 0));
         sizes.push_back(rewriter.create<arith::ConstantIndexOp>(loc, shape[j]));
-        strides.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
+        strides.push_back(rewriter.create<arith::ConstantIndexOp>(loc, stridesInt[j]));
       }
 
       offsets.push_back(rewriter.create<arith::ConstantIndexOp>(loc, i));
