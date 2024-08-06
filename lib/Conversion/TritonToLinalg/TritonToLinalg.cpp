@@ -54,9 +54,6 @@ void mlir::triton::populateTritonToLinalgConversionPatterns(
   patterns.add<PreciseDivConverter>(patterns.getContext());
   patterns.add<FpToFpConverter>(patterns.getContext());
   patterns.add<ClampConverter>(patterns.getContext());
-  patterns.add<CatConverter>(patterns.getContext());
-  patterns.add<SplitConverter>(patterns.getContext());
-  patterns.add<JoinConverter>(patterns.getContext());
   patterns.add<AssertConverter>(patterns.getContext());
   patterns.add<MatmulConverter>(patterns.getContext());
   patterns.add<SplatConverter>(patterns.getContext());
