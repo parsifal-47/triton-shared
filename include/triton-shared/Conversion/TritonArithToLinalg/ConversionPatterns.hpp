@@ -983,16 +983,16 @@ struct JoinConverter : public OpConversionPattern<triton::JoinOp> {
       SmallVector<Value, 4> offsets, sizes, strides;
 
       for (size_t j = 0; j < resultShape.size() - 1; ++j) {
-        offsets.push_back(rewriter.create<ConstantIndexOp>(loc, 0));
-        sizes.push_back(rewriter.create<ConstantIndexOp>(loc, resultShape[j]));
-        strides.push_back(rewriter.create<ConstantIndexOp>(loc, 1));
+        offsets.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 0));
+        sizes.push_back(rewriter.create<arith::ConstantIndexOp>(loc, resultShape[j]));
+        strides.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
       }
 
       // Set offset for the last dimension to the current index
-      offsets.push_back(rewriter.create<ConstantIndexOp>(loc, i));
+      offsets.push_back(rewriter.create<arith::ConstantIndexOp>(loc, i));
       // Set size for the last dimension to 1
-      sizes.push_back(rewriter.create<ConstantIndexOp>(loc, 1));
-      strides.push_back(rewriter.create<ConstantIndexOp>(loc, 1));
+      sizes.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
+      strides.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
 
       rewriter.create<tensor::InsertSliceOp>(loc, inputs[i], alloc, offsets, sizes, strides);
     }
