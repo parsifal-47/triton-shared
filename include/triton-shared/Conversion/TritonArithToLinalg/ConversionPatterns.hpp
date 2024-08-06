@@ -951,7 +951,7 @@ struct SplitConverter : public OpConversionPattern<triton::SplitOp> {
 
       for (size_t j = 0; j < shape.size() - 1; ++j) {
         offsets.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 0));
-        sizes.push_back(rewriter.create<arith::ConstantIndexOp>(loc, resultShape[j]));
+        sizes.push_back(rewriter.create<arith::ConstantIndexOp>(loc, shape[j]));
         strides.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
       }
 
