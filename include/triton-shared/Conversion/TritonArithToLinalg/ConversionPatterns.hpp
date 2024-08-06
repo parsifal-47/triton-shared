@@ -947,12 +947,17 @@ struct SplitConverter : public OpConversionPattern<triton::SplitOp> {
 
     SmallVector<Value, 2> results;
     for (int64_t i = 0; i < 2; ++i) {
-      SmallVector<OpFoldResult, 4> offsets(rank, rewriter.getIndexAttr(0));
-      SmallVector<OpFoldResult, 4> sizes(rank, rewriter.getIndexAttr(1));
-      SmallVector<OpFoldResult, 4> strides(rank, rewriter.getIndexAttr(1));
+      SmallVector<Value, 4> offsets, sizes, strides;
 
-      offsets[rank - 1] = rewriter.getIndexAttr(i);
-      sizes[rank - 1] = rewriter.getIndexAttr(1);
+      for (size_t j = 0; j < resultShape.size() - 1; ++j) {
+        offsets.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 0));
+        sizes.push_back(rewriter.create<arith::ConstantIndexOp>(loc, resultShape[j]));
+        strides.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
+      }
+
+      offsets.push_back(rewriter.create<arith::ConstantIndexOp>(loc, i));
+      sizes.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
+      strides.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
 
       Value slice = rewriter.create<tensor::ExtractSliceOp>(
           loc, resultTensor, input, offsets, sizes, strides);
