@@ -133,6 +133,13 @@ static Value getTransposedValue(Value source, const Location loc,
   return transpose;
 }
 
+// for IntLike and FloatLike types
+static unsigned getBitWidth(Type a) {
+  if (auto type = dyn_cast<TensorType>(a))
+    return type.getElementType().getIntOrFloatBitWidth();
+  return a.getIntOrFloatBitWidth();
+}
+
 //===----------------------------------------------------------------------===//
 // Op Lowering Patterns
 //===----------------------------------------------------------------------===//
@@ -839,6 +846,187 @@ struct BitcastConverter : public OpConversionPattern<triton::BitcastOp> {
         op.getLoc(), op.getType(), op.getOperand());
 
     rewriter.replaceOp(op, arithBitcast.getResult());
+    return success();
+  }
+};
+
+struct FpToFpConverter : public OpConversionPattern<triton::FpToFpOp> {
+  using OpConversionPattern<triton::FpToFpOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::FpToFpOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto roundingMode = triton::RoundingMode::RTNE; // default
+
+    if (auto roundingModeAttr = op->getAttrOfType<triton::RoundingModeAttr>("rounding")) {
+      roundingMode = roundingModeAttr.getValue();
+    }
+
+    assert(roundingMode != triton::RoundingMode::RTZ &&
+           "Rounding Towards Zero is not supported");
+
+    Type resultType = op.getResult().getType();
+
+    unsigned operandWidth = getBitWidth(op.getOperand().getType());
+    unsigned resultWidth = getBitWidth(resultType);
+
+    if (operandWidth > resultWidth) {
+      Value truncatedValue = rewriter.create<arith::TruncFOp>(op.getLoc(), resultType, op.getOperand());
+      rewriter.replaceOp(op, truncatedValue);
+      return success();
+    }
+
+    Value extendedValue = rewriter.create<arith::ExtFOp>(op.getLoc(), resultType, op.getOperand());
+    rewriter.replaceOp(op, extendedValue);
+
+    return success();
+  }
+};
+
+struct ClampConverter : public OpConversionPattern<triton::ClampFOp> {
+  using OpConversionPattern<triton::ClampFOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::ClampFOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    bool propagateNan = false;
+
+    if (auto propagateNanAttr = op->getAttrOfType<triton::PropagateNanAttr>("propagateNan")) {
+      propagateNan = propagateNanAttr.getValue() == triton::PropagateNan::ALL;
+    }
+
+    assert(!propagateNan &&
+           "PropagateNan is not supported");
+
+    Location loc = op.getLoc();
+    Value x = adaptor.getOperands()[0];
+    Value min = adaptor.getOperands()[1];
+    Value max = adaptor.getOperands()[2];
+
+    Value maxMin = rewriter.create<arith::MaximumFOp>(loc, x, min);
+    Value clamp = rewriter.create<arith::MinimumFOp>(loc, maxMin, max);
+    rewriter.replaceOp(op, clamp);
+
+    return success();
+  }
+};
+
+struct CatConverter : public OpConversionPattern<triton::CatOp> {
+  using OpConversionPattern<triton::CatOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::CatOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+
+    auto resultType = op.getType();
+    Value result = rewriter.create<tensor::ConcatOp>(op.getLoc(), resultType, 0, op.getOperands());
+    rewriter.replaceOp(op, result);
+
+    return success();
+  }
+};
+
+struct SplitConverter : public OpConversionPattern<triton::SplitOp> {
+  using OpConversionPattern<triton::SplitOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::SplitOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    Location loc = op.getLoc();
+    Value input = op.getOperand();
+    auto inputType = cast<RankedTensorType>(input.getType());
+    int64_t rank = inputType.getRank();
+    auto shape = inputType.getShape();
+
+    if (shape.back() != 2) {
+      return op.emitError("The last dimension size exactly 2 per triton spec.");
+    }
+
+    Type resultType = op.getResults().front().getType();
+    auto resultTensor = cast<RankedTensorType>(resultType);
+
+    SmallVector<Value, 2> results;
+    for (int64_t i = 0; i < 2; ++i) {
+      SmallVector<OpFoldResult, 4> offsets(rank, rewriter.getIndexAttr(0));
+      SmallVector<OpFoldResult, 4> sizes(rank, rewriter.getIndexAttr(1));
+      SmallVector<OpFoldResult, 4> strides(rank, rewriter.getIndexAttr(1));
+
+      offsets[rank - 1] = rewriter.getIndexAttr(i);
+      sizes[rank - 1] = rewriter.getIndexAttr(1);
+
+      Value slice = rewriter.create<tensor::ExtractSliceOp>(
+          loc, resultTensor, input, offsets, sizes, strides);
+
+      results.push_back(slice);
+    }
+
+    rewriter.replaceOp(op, results);
+    return success();
+  }
+};
+
+struct JoinConverter : public OpConversionPattern<triton::JoinOp> {
+  using OpConversionPattern<triton::JoinOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::JoinOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    ValueRange inputs = op.getOperands();
+
+    auto resultType = cast<RankedTensorType>(op.getResult().getType());
+    auto resultShape = resultType.getShape();
+
+    auto loc = op.getLoc();
+    auto alloc = rewriter.create<memref::AllocOp>(loc,  MemRefType::get(resultShape, resultType.getElementType()));
+
+    for (unsigned i = 0; i < inputs.size(); ++i) {
+      SmallVector<Value, 4> offsets, sizes, strides;
+
+      for (size_t j = 0; j < resultShape.size() - 1; ++j) {
+        offsets.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 0));
+        sizes.push_back(rewriter.create<arith::ConstantIndexOp>(loc, resultShape[j]));
+        strides.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
+      }
+
+      // Set offset for the last dimension to the current index
+      offsets.push_back(rewriter.create<arith::ConstantIndexOp>(loc, i));
+      // Set size for the last dimension to 1
+      sizes.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
+      strides.push_back(rewriter.create<arith::ConstantIndexOp>(loc, 1));
+
+      rewriter.create<tensor::InsertSliceOp>(loc, inputs[i], alloc, offsets, sizes, strides);
+    }
+
+    rewriter.replaceOp(op, alloc);
+
+    return success();
+  }
+};
+
+struct PreciseSqrtConverter : public OpConversionPattern<triton::PreciseSqrtOp> {
+  using OpConversionPattern<triton::PreciseSqrtOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::PreciseSqrtOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto replacement = rewriter.create<math::SqrtOp>(
+        op.getLoc(), adaptor.getOperands());
+
+    rewriter.replaceOp(op, replacement);
+    return success();
+  }
+};
+
+struct PreciseDivConverter : public OpConversionPattern<triton::PreciseDivFOp> {
+  using OpConversionPattern<triton::PreciseDivFOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(triton::PreciseDivFOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto replacement = rewriter.create<arith::DivFOp>(
+        op.getLoc(), adaptor.getOperands());
+
+    rewriter.replaceOp(op, replacement);
     return success();
   }
 };
