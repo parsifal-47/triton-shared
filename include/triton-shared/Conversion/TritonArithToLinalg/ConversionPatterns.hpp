@@ -917,10 +917,13 @@ struct CatConverter : public OpConversionPattern<triton::CatOp> {
   LogicalResult
   matchAndRewrite(triton::CatOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
+    auto loc = op.getLoc();
+    auto resultType = cast<RankedTensorType>(op.getResult().getType());
+    auto resultShape = resultType.getShape();
 
-    auto resultType = op.getType();
-    Value outputBuffer = rewriter.create<memref::AllocOp>(op.getLoc(), resultType);
-    Value result = rewriter.create<tensor::ConcatOp>(op.getLoc(), outputBuffer, 0, op.getOperands());
+    auto outputBuffer = rewriter.create<memref::AllocOp>(loc,  MemRefType::get(resultShape, resultType.getElementType()));
+
+    Value result = rewriter.create<tensor::ConcatOp>(loc, outputBuffer, 0, op.getOperands());
     rewriter.replaceOp(op, result);
 
     return success();
