@@ -103,7 +103,7 @@ public:
     auto moduleOp = getOperation();
     RewritePatternSet patterns(&getContext());
 
-    patterns.add<SplatConverter>(patterns.getContext());
+    patterns.add<MatmulConverter>(patterns.getContext());
 
     if (failed(applyPatternsAndFoldGreedily(moduleOp, std::move(patterns)))) {
       signalPassFailure();
