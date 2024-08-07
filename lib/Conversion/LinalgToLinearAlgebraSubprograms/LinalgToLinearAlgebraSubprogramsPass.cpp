@@ -43,23 +43,22 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
 
     auto doubleType = rewriter.getF64Type();
     auto intType = rewriter.getI32Type();
-    auto doublePtrType = PointerType::get(doubleType, llvm::AddressSpace::ADDRESS_SPACE_GENERIC);
+    auto doublePtrType = PointerType::get(doubleType, ADDRESS_SPACE_GENERIC);
 
     auto funcType = FunctionType::get(rewriter.getNoneType(),
         {intType, intType, intType, intType, intType, intType, doubleType,
          doublePtrType, intType, doublePtrType, intType, doubleType,
          doublePtrType, intType}, false);
 
+    const char *funcName = "cblas_dgemm";
     auto func = module.lookupSymbol<FuncOp>(funcName);
     if (!func) {
       func = rewriter.create<FuncOp>(loc, funcName, funcType);
     }
 
-    auto func = rewriter.getOrCreateLLVMFunction(op.getLoc(), "cblas_dgemm", funcType);
-
     Value A = op.getOperands()[0];
     Value B = op.getOperands()[1];
-    Value C = op.getResult();
+    Value C = op.getResult(0);
 
     int64_t M = cast<MemRefType>(A.getType()).getShape()[0];
     int64_t K = cast<MemRefType>(A.getType()).getShape()[1];
