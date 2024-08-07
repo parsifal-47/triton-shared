@@ -10,7 +10,7 @@ namespace mlir {
 namespace triton {
 
 #define GEN_PASS_DECL
-#include "triton-shared/Conversion/TritonArithToLinalg/Passes.h.inc"
+#include "triton-shared/Conversion/LinalgToLinearAlgebraSubprograms/Passes.h.inc"
 
 void populateLinalgToLinearAlgebraSubprogramsConversionPatterns(bool pidsToFuncArgs,
                                                    bool addptrToLinalg,

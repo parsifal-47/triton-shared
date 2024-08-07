@@ -1,9 +1,8 @@
-add_triton_library(TritonArithToLinalg
-  TritonArithToLinalg.cpp
-  TritonArithToLinalgPass.cpp
+add_triton_library(LinalgToLinearAlgebraSubprograms
+  LinalgToLinearAlgebraSubprogramsPass.cpp
 
   DEPENDS
-  TritonArithToLinalgConversionPassIncGen
+  LinalgToLinearAlgebraSubprogramsConversionPassIncGen
 
   LINK_LIBS PUBLIC
   MLIRLinalgTransforms
