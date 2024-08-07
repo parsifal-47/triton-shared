@@ -40,7 +40,7 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
                   ConversionPatternRewriter &rewriter) const override {
     auto doubleType = rewriter.getF64Type();
     auto intType = rewriter.getI32Type();
-    auto doublePtrType = PointerType::get(doubleType);
+    auto doublePtrType = PointerType::get(doubleType, AddressSpace::ADDRESS_SPACE_GENERIC);
 
     auto funcType = FunctionType::get(rewriter.getNoneType(),
         {intType, intType, intType, intType, intType, intType, doubleType,
@@ -53,21 +53,21 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
     Value B = op.getOperands()[1];
     Value C = op.getResult();
 
-    int64_t M = A.getType().cast<MemRefType>().getShape()[0];
-    int64_t K = A.getType().cast<MemRefType>().getShape()[1];
-    int64_t N = B.getType().cast<MemRefType>().getShape()[1];
+    int64_t M = cast<MemRefType>(A.getType()).getShape()[0];
+    int64_t K = cast<MemRefType>(A.getType()).getShape()[1];
+    int64_t N = cast<MemRefType>(B.getType()).getShape()[1];
 
-    Value alpha = rewriter.create<llvm::ConstantOp>(loc, doubleType, rewriter.getF64FloatAttr(1.0));
-    Value beta = rewriter.create<llvm::ConstantOp>(loc, doubleType, rewriter.getF64FloatAttr(0.0));
+    Value alpha = rewriter.create<arith::ConstantOp>(loc, doubleType, rewriter.getF64FloatAttr(1.0));
+    Value beta = rewriter.create<arith::ConstantOp>(loc, doubleType, rewriter.getF64FloatAttr(0.0));
 
-    Value CblasRowMajor = rewriter.create<llvm::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(101));
-    Value CblasNoTrans = rewriter.create<llvm::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(111));
-    Value MVal = rewriter.create<llvm::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(M));
-    Value NVal = rewriter.create<llvm::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(N));
-    Value KVal = rewriter.create<llvm::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(K));
-    Value LDA = rewriter.create<llvm::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(K));
-    Value LDB = rewriter.create<llvm::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(N));
-    Value LDC = rewriter.create<llvm::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(N));
+    Value CblasRowMajor = rewriter.create<arith::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(101));
+    Value CblasNoTrans = rewriter.create<arith::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(111));
+    Value MVal = rewriter.create<arith::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(M));
+    Value NVal = rewriter.create<arith::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(N));
+    Value KVal = rewriter.create<arith::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(K));
+    Value LDA = rewriter.create<arith::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(K));
+    Value LDB = rewriter.create<arith::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(N));
+    Value LDC = rewriter.create<arith::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(N));
 
     rewriter.replaceOpWithNewOp<llvm::CallOp>(op, func, ValueRange{
         CblasRowMajor, CblasNoTrans, CblasNoTrans,
