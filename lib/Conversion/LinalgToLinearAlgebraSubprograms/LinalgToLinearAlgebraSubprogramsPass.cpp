@@ -38,14 +38,22 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
   LogicalResult
   matchAndRewrite(linalg::MatmulOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
+    Location loc = op.getLoc();
+    ModuleOp module = op->getParentOfType<ModuleOp>();
+
     auto doubleType = rewriter.getF64Type();
     auto intType = rewriter.getI32Type();
-    auto doublePtrType = PointerType::get(doubleType, AddressSpace::ADDRESS_SPACE_GENERIC);
+    auto doublePtrType = PointerType::get(doubleType, llvm::AddressSpace::ADDRESS_SPACE_GENERIC);
 
     auto funcType = FunctionType::get(rewriter.getNoneType(),
         {intType, intType, intType, intType, intType, intType, doubleType,
          doublePtrType, intType, doublePtrType, intType, doubleType,
          doublePtrType, intType}, false);
+
+    auto func = module.lookupSymbol<FuncOp>(funcName);
+    if (!func) {
+      func = rewriter.create<FuncOp>(loc, funcName, funcType);
+    }
 
     auto func = rewriter.getOrCreateLLVMFunction(op.getLoc(), "cblas_dgemm", funcType);
 
@@ -69,7 +77,7 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
     Value LDB = rewriter.create<arith::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(N));
     Value LDC = rewriter.create<arith::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(N));
 
-    rewriter.replaceOpWithNewOp<llvm::CallOp>(op, func, ValueRange{
+    rewriter.replaceOpWithNewOp<CallOp>(op, func, ValueRange{
         CblasRowMajor, CblasNoTrans, CblasNoTrans,
         MVal, NVal, KVal,
         alpha, A, LDA,
