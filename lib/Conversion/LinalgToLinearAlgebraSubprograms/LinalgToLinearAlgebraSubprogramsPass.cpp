@@ -40,9 +40,9 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
                   ConversionPatternRewriter &rewriter) const override {
     auto doubleType = rewriter.getF64Type();
     auto intType = rewriter.getI32Type();
-    auto doublePtrType = llvm::LLVMPointerType::get(doubleType);
+    auto doublePtrType = PointerType::get(doubleType);
 
-    auto funcType = llvm::LLVMFunctionType::get(rewriter.getVoidType(),
+    auto funcType = FunctionType::get(rewriter.getVoidType(),
         {intType, intType, intType, intType, intType, intType, doubleType,
          doublePtrType, intType, doublePtrType, intType, doubleType,
          doublePtrType, intType}, false));
