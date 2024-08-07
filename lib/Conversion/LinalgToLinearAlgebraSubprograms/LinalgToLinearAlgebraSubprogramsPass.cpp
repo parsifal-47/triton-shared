@@ -42,10 +42,10 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
     auto intType = rewriter.getI32Type();
     auto doublePtrType = PointerType::get(doubleType);
 
-    auto funcType = FunctionType::get(rewriter.getVoidType(),
+    auto funcType = FunctionType::get(rewriter.getNoneType(),
         {intType, intType, intType, intType, intType, intType, doubleType,
          doublePtrType, intType, doublePtrType, intType, doubleType,
-         doublePtrType, intType}, false));
+         doublePtrType, intType}, false);
 
     auto func = rewriter.getOrCreateLLVMFunction(op.getLoc(), "cblas_dgemm", funcType);
 
