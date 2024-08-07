@@ -43,7 +43,7 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
 
     auto doubleType = rewriter.getF64Type();
     auto intType = rewriter.getI32Type();
-    auto doublePtrType = PointerType::get(doubleType);
+    auto doublePtrType = PointerType::get(doubleType, 0); // default address space
 
     auto funcType = FunctionType::get(rewriter.getNoneType(),
         {intType, intType, intType, intType, intType, intType, doubleType,
