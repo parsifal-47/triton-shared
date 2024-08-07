@@ -48,7 +48,7 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
     auto funcType = FunctionType::get(op.getContext(), {rewriter.getNoneType()},
         {intType, intType, intType, intType, intType, intType, doubleType,
          doublePtrType, intType, doublePtrType, intType, doubleType,
-         doublePtrType, intType}, false);
+         doublePtrType, intType});
 
     const char *funcName = "cblas_dgemm";
     auto func = module.lookupSymbol<FuncOp>(funcName);
