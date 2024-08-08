@@ -25,7 +25,7 @@ using namespace triton;
 
 namespace mlir {
 namespace triton {
-#define GEN_PASS_DEF_LA_TO_LAS
+#define GEN_PASS_DECL
 #include "triton-shared/Conversion/LinalgToLinearAlgebraSubprograms/Passes.h.inc"
 } // namespace triton
 } // namespace mlir
