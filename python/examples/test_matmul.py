@@ -156,6 +156,8 @@ def test_matmul(device):
     torch_output = torch.matmul(a, b)
     torch.testing.assert_close(triton_output, torch_output, atol=1e-2, rtol=0)
 
+ref_lib = 'rocBLAS'
+
 configs = []
 configs.append(
     triton.testing.Benchmark(
