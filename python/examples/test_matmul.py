@@ -170,7 +170,8 @@ configs.append(
         line_names=[ref_lib, "Triton"],  # Line styles
         styles=[("green", "-"), ("blue", "-")],
         ylabel="TFLOPS",  # Label name for the y-axis
-        plot_name="matmul-performance-f16"
+        plot_name="matmul-performance-f16",
+        args={}
     ))
 
 
