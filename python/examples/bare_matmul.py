@@ -27,9 +27,11 @@ def bench_matmul(M, N, K, provider):
     b = torch.randn((K, N), device=device, dtype=dtype)
     c = torch.empty((K, N), device=device, dtype=dtype)
     if provider == 'torch':
-        torch.matmul(a, b)
+        c = torch.matmul(a, b)
+        print(c)
     if provider == 'triton':
         bare_matmul[(1,)](a, b, c, N)
+        print(c)
 
 
 if __name__ == "__main__":
