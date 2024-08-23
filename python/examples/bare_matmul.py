@@ -6,17 +6,28 @@ import benchmark
 
 
 @triton.jit
-def bare_matmul(X, Y, Z, BLOCK_SIZE: tl.constexpr):
-    pid = tl.program_id(0)
-    
-    offs_x = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
-    offs_y = tl.arange(0, BLOCK_SIZE)
+def bare_matmul(X, Y, Z, M, N, K, BLOCK_SIZE: tl.constexpr):
+    # Get the program IDs for the current block
+    pid_x = tl.program_id(0)  # block row id
+    pid_y = tl.program_id(1)  # block column id
 
-    x = tl.load(X + offs_x[:, None])
-    y = tl.load(Y + offs_y[None, :])
+    # Define offsets for loading submatrices (blocks)
+    offs_x = pid_x * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+    offs_y = pid_y * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
 
+    # Define bounds checking to avoid loading out-of-bounds values
+    mask_x = offs_x < M
+    mask_y = offs_y < N
+
+    # Load blocks (submatrices) from global memory
+    x = tl.load(X + offs_x[:, None] * K + tl.arange(0, K)[None, :], mask=mask_x[:, None])
+    y = tl.load(Y + tl.arange(0, K)[:, None] * N + offs_y[None, :], mask=mask_y[None, :])
+
+    # Perform the dot product
     z = tl.dot(x, y)
-    tl.store(Z + offs_x[:, None] + offs_y[None, :], z)
+
+    # Store the result
+    tl.store(Z + offs_x[:, None] * N + offs_y[None, :], z, mask=mask_x[:, None] & mask_y[None, :])
 
 
 @benchmark.measure()
@@ -30,7 +41,7 @@ def bench_matmul(M, N, K, provider):
         c = torch.matmul(a, b)
         print(c)
     if provider == 'triton':
-        bare_matmul[(1,)](a, b, c, N)
+        bare_matmul[(1,)](a, b, c, M, N, K, N) # we assume M == N == K
         print(c)
 
 
