@@ -15,19 +15,15 @@ def bare_matmul(X, Y, Z, M, N, K, BLOCK_SIZE: tl.constexpr):
     offs_x = pid_x * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
     offs_y = pid_y * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
 
-    # Define bounds checking to avoid loading out-of-bounds values
-    mask_x = offs_x < M
-    mask_y = offs_y < N
-
     # Load blocks (submatrices) from global memory
-    x = tl.load(X + offs_x[:, None] * K + tl.arange(0, K)[None, :], mask=mask_x[:, None])
-    y = tl.load(Y + tl.arange(0, K)[:, None] * N + offs_y[None, :], mask=mask_y[None, :])
+    x = tl.load(X + offs_x[:, None] * K + offs_y[None, :])
+    y = tl.load(Y + offs_x[:, None] * N + offs_y[None, :])
 
     # Perform the dot product
     z = tl.dot(x, y)
 
     # Store the result
-    tl.store(Z + offs_x[:, None] * N + offs_y[None, :], z, mask=mask_x[:, None] & mask_y[None, :])
+    tl.store(Z + offs_x[:, None] * N + offs_y[None, :], z)
 
 
 @benchmark.measure()
