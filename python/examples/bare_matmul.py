@@ -35,10 +35,8 @@ def bench_matmul(M, N, K, provider):
     c = torch.empty((K, N), device=device, dtype=dtype)
     if provider == 'torch':
         c = torch.matmul(a, b)
-        print(c)
     if provider == 'triton':
         bare_matmul[(1,)](a, b, c, M, N, K, N) # we assume M == N == K
-        print(c)
 
 
 if __name__ == "__main__":
