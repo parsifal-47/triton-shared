@@ -27,20 +27,23 @@ def bare_matmul(X, Y, Z, M, N, K, BLOCK_SIZE: tl.constexpr):
 
 
 @benchmark.measure()
-def bench_matmul(M, N, K, provider):
+def bench_matmul(N, provider):
     device = 'cpu'
     dtype = torch.float32
-    a = torch.randn((M, K), device=device, dtype=dtype)
-    b = torch.randn((K, N), device=device, dtype=dtype)
-    c = torch.empty((K, N), device=device, dtype=dtype)
-    if provider == 'torch':
-        c = torch.matmul(a, b)
-    if provider == 'triton':
-        bare_matmul[(1,)](a, b, c, M, N, K, N) # we assume M == N == K
+    a = torch.randn((N, N), device=device, dtype=dtype)
+    b = torch.randn((N, N), device=device, dtype=dtype)
+    c = torch.empty((N, N), device=device, dtype=dtype)
+    if provider == 'torch' or provider == 'test':
+        c_ref = torch.matmul(a, b)
+    if provider == 'triton' or provider == 'test':
+        bare_matmul[(1,)](a, b, c, N, N, N, N)
+        if provider == 'test':
+            torch.testing.assert_close(c, c_ref, atol=1e-2, rtol=0)
 
 
 if __name__ == "__main__":
     benchmark.select_cpu_backend()
-    for X in [2**i for i in range(7, 11, 1)]:
+    bench_matmul(128, 'test')
+    for X in [2**i for i in range(7, 10, 1)]:
         for provider in ['torch', 'triton']:
             bench_matmul(X, X, X, provider)
