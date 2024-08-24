@@ -46,4 +46,4 @@ if __name__ == "__main__":
     bench_matmul(128, 'test')
     for X in [2**i for i in range(7, 10, 1)]:
         for provider in ['torch', 'triton']:
-            bench_matmul(X, X, X, provider)
+            bench_matmul(X, provider)
