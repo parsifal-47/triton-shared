@@ -5,7 +5,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "triton-shared/Conversion/TritonToLinearAlgebraSubprograms/TritonToLinearAlgebraSubprograms.h"
+#include "triton-shared/Conversion/LinalgToLinearAlgebraSubprograms/LinalgToLinearAlgebraSubprograms.h"
 #include "triton-shared/Dialect/TritonStructured/IR/TritonStructuredDialect.h"
 #include "triton-shared/Dialect/TritonTilingExt/IR/TritonTilingExtDialect.h"
 #include "triton/Dialect/Triton/IR/Dialect.h"
@@ -27,18 +27,18 @@ using namespace triton;
 
 namespace mlir {
 namespace triton {
-#define GEN_PASS_DEF_TRITONTOLINEARALGEBRASUBPROGRAMS
-#include "triton-shared/Conversion/TritonToLinearAlgebraSubprograms/Passes.h.inc"
+#define GEN_PASS_DEF_LINALGTOLINEARALGEBRASUBPROGRAMS
+#include "triton-shared/Conversion/LinalgToLinearAlgebraSubprograms/Passes.h.inc"
 } // namespace triton
 } // namespace mlir
 
 namespace {
 
-struct MatmulConverter : public OpConversionPattern<triton::DotOp> {
-  using OpConversionPattern<triton::DotOp>::OpConversionPattern;
+struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
+  using OpConversionPattern<linalg::MatmulOp>::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(triton::DotOp op, OpAdaptor adaptor,
+  matchAndRewrite(linalg::MatmulOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     Location loc = op.getLoc();
 
@@ -134,16 +134,16 @@ struct MatmulConverter : public OpConversionPattern<triton::DotOp> {
   }
 };
 
-class TritonToLinearAlgebraSubprogramsPass
-    : public triton::impl::TritonToLinearAlgebraSubprogramsBase<TritonToLinearAlgebraSubprogramsPass> {
-  using TritonToLinearAlgebraSubprogramsBase<
-      TritonToLinearAlgebraSubprogramsPass>::TritonToLinearAlgebraSubprogramsBase;
+class LinalgToLinearAlgebraSubprogramsPass
+    : public triton::impl::LinalgToLinearAlgebraSubprogramsBase<LinalgToLinearAlgebraSubprogramsPass> {
+  using LinalgToLinearAlgebraSubprogramsBase<
+      LinalgToLinearAlgebraSubprogramsPass>::LinalgToLinearAlgebraSubprogramsBase;
 
 public:
   void getDependentDialects(DialectRegistry &registry) const override {
     registry
-        .insert<linalg::LinalgDialect, func::FuncDialect, arith::ArithDialect, math::MathDialect,
-            affine::AffineDialect, scf::SCFDialect, tensor::TensorDialect, LLVM::LLVMDialect, triton::TritonDialect>();
+        .insert<linalg::LinalgDialect, func::FuncDialect, arith::ArithDialect, math::MathDialect, bufferization::BufferizationDialect,
+            affine::AffineDialect, scf::SCFDialect, tensor::TensorDialect, LLVM::LLVMDialect>();
   }
 
   void runOnOperation() override {
@@ -168,6 +168,6 @@ public:
 } // namespace
 
 std::unique_ptr<OperationPass<ModuleOp>>
-triton::createTritonToLinearAlgebraSubprogramsPass() {
-  return std::make_unique<TritonToLinearAlgebraSubprogramsPass>();
+triton::createLinalgToLinearAlgebraSubprogramsPass() {
+  return std::make_unique<LinalgToLinearAlgebraSubprogramsPass>();
 }
