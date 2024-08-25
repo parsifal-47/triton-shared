@@ -202,4 +202,4 @@ class CPUBackend(BaseBackend):
     @functools.lru_cache()
     def hash(self):
         blas_suffix = "" if not _get_triton_shared_use_openblas() else "-blas"
-        return self.target + blas_suffix
+        return self.target.backend + blas_suffix
