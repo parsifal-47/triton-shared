@@ -127,6 +127,10 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
     };
 
     auto tensorToPointer = [&rewriter, &loc, &memrefToPointer](Value &V, RankedTensorType &T) {
+      if (auto tensorOp = V.getDefiningOp<bufferization::ToTensorOp>()) {
+        return memrefToPointer(tensorOp.getMemref());
+      }
+
       Value memref = rewriter.create<bufferization::ToMemrefOp>(loc, MemRefType::get(T.getShape(), T.getElementType()), V);
       return memrefToPointer(memref);
     };
@@ -200,7 +204,25 @@ public:
         bufferization::BufferizationDialect, memref::MemRefDialect, LLVM::LLVMDialect>();
 
 
-    target.addIllegalOp<linalg::MatmulOp>();
+    target.addDynamicallyLegalOp<linalg::MatmulOp>([](linalg::MatmulOp op) {
+        Value A = op.getInputs()[0];
+        Value B = op.getInputs()[1];
+
+        auto tensorA = cast<RankedTensorType>(A.getType());
+        auto tensorB = cast<RankedTensorType>(B.getType());
+
+        if (tensorA.getElementType() != tensorB.getElementType()) {
+          // no need to replace if types are different
+          return true;
+        }
+
+        if (!tensorA.getElementType().isF32() && !tensorA.getElementType().isF64()) {
+          // unsupported types
+          return true;
+        }
+
+        return false;  // MatmulOp is illegal, and transformation is needed
+    });
 
     if (failed(applyPartialConversion(moduleOp, target, std::move(patterns)))) {
       signalPassFailure();
