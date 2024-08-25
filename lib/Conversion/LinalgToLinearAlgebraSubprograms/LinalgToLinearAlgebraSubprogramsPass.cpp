@@ -35,9 +35,6 @@ namespace triton {
 namespace {
 
 struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
-  MatmulConverter(MLIRContext *context)
-      : OpConversionPattern<linalg::MatmulOp>(context, /* benefit */ 100) {}
-
   using OpConversionPattern<linalg::MatmulOp>::OpConversionPattern;
 
   LogicalResult
@@ -201,6 +198,9 @@ public:
         affine::AffineDialect, scf::SCFDialect, linalg::LinalgDialect,
         cf::ControlFlowDialect, tensor::TensorDialect,
         bufferization::BufferizationDialect, memref::MemRefDialect, LLVM::LLVMDialect>();
+
+
+    target.addIllegalOp<linalg::MatmulOp>();
 
     if (failed(applyPartialConversion(moduleOp, target, std::move(patterns)))) {
       signalPassFailure();
