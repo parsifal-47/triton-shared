@@ -53,12 +53,12 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
     Value B = op.getInputs()[1];
     Value C;
 
-    Value matmulResult = matmulOp.getResults()[0];
+    Value matmulResult = op.getResults()[0];
     bool otherUsers = false;
     bool found = false;
 
     for (Operation *user : matmulResult.getUsers()) {
-        if (!found && (auto addFOp = dyn_cast<arith::AddFOp>(user))) {
+        if ((auto addFOp = dyn_cast<arith::AddFOp>(user)) && !found) {
           found = true;
           C = addFop.getLhs() == matmulResult ? addFop.getRhs() : addFop.getLhs();
           resultOp = addFOp;
