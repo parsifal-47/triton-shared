@@ -61,7 +61,7 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
         if (auto addFOp = dyn_cast<arith::AddFOp>(user)) {
           if (!found) {
             found = true;
-            C = addFop.getLhs() == matmulResult ? addFop.getRhs() : addFop.getLhs();
+            C = addFOp.getLhs() == matmulResult ? addFOp.getRhs() : addFOp.getLhs();
             resultOp = addFOp;
             continue;
           }
