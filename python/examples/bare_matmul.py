@@ -1,5 +1,7 @@
-import torch
+# this is a benchmark which multiplies square matrices with maximum block size
+# to check the performance of tl.dot operation
 
+import torch
 import triton
 import triton.language as tl
 import benchmark
@@ -38,7 +40,6 @@ def bench_matmul(N, provider):
 
 if __name__ == "__main__":
     benchmark.select_cpu_backend()
-    bench_matmul(128, 'test')
     for X in [2**i for i in range(7, 10, 1)]:
-        for provider in ['torch', 'triton']:
+        for provider in ['test', 'torch', 'triton']:
             bench_matmul(X, provider)

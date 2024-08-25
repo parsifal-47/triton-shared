@@ -145,6 +145,9 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
     auto constOp = [&rewriter, &loc, &intType](int32_t V) {
       return rewriter.create<arith::ConstantOp>(loc, intType, rewriter.getI32IntegerAttr(V));
       };
+
+    // constants below are from OpenBLAS library, check variable names for interpretation
+    // for more information check: https://github.com/OpenMathLib/OpenBLAS/blob/develop/cblas.h
     Value CblasRowMajor = constOp(101), CblasNoTrans = constOp(111);
     Value MVal = constOp(M), NVal = constOp(N), KVal = constOp(K);
     Value LDA = KVal, LDB = NVal, LDC = NVal;
