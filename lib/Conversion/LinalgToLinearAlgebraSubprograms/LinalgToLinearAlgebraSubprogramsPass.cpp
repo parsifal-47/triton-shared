@@ -42,9 +42,37 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
                   ConversionPatternRewriter &rewriter) const override {
     Location loc = op.getLoc();
 
-    Value A = op.getA();
-    Value B = op.getB();
-    Value C = op.getC();
+    if (op.getInputs().size() != 2) {
+      LLVM_DEBUG(llvm::dbgs() << "Cannot replace, must be exactly two input matrices\n");
+      return failure();
+    }
+
+    Operation *resultOp;
+
+    Value A = op.getInputs()[0];
+    Value B = op.getInputs()[1];
+    Value C;
+
+    Value matmulResult = matmulOp.getResults()[0];
+    bool otherUsers = false;
+    bool found = false;
+
+    for (Operation *user : matmulResult.getUsers()) {
+        if (!found && (auto addFOp = dyn_cast<arith::AddFOp>(user))) {
+          found = true;
+          C = addFop.getLhs() == matmulResult ? addFop.getRhs() : addFop.getLhs();
+          resultOp = addFOp;
+          continue;
+        }
+        otherUsers = true;
+    }
+
+    bool replacingFOp = true;
+    if (otherUsers || !found) {
+      C = op.getOutputs()[0];
+      resultOp = op;
+      replacingFOp = false;
+    }
 
     auto tensorA = cast<RankedTensorType>(A.getType());
     auto tensorB = cast<RankedTensorType>(B.getType());
@@ -129,7 +157,14 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
 
     auto toTensorOp = rewriter.create<bufferization::ToTensorOp>(loc,
         tensorC, memrefC, true /* restrict */, true /* writable */);
-    rewriter.replaceOp(op, toTensorOp);
+
+    if (!replacingFOp) {
+      rewriter.replaceOp(op, toTensorOp);
+    } else {
+      rewriter.eraseOp(op);
+      rewriter.replaceOp(resultOp, toTensorOp);
+    }
+
     return success();
   }
 };
