@@ -35,6 +35,9 @@ namespace triton {
 namespace {
 
 struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
+  MatmulConverter(MLIRContext *context)
+      : RewritePattern(linalg::MatmulOp::getOperationName(), /* benefit */ 100, context) {}
+
   using OpConversionPattern<linalg::MatmulOp>::OpConversionPattern;
 
   LogicalResult
