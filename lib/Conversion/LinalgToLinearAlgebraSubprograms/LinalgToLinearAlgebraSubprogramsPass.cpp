@@ -128,7 +128,8 @@ struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
 
     auto tensorToPointer = [&rewriter, &loc, &memrefToPointer](Value &V, RankedTensorType &T) {
       if (auto tensorOp = V.getDefiningOp<bufferization::ToTensorOp>()) {
-        return memrefToPointer(tensorOp.getMemref());
+        Value ref = tensorOp.getMemref();
+        return memrefToPointer(ref);
       }
 
       Value memref = rewriter.create<bufferization::ToMemrefOp>(loc, MemRefType::get(T.getShape(), T.getElementType()), V);
