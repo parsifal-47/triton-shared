@@ -36,7 +36,7 @@ namespace {
 
 struct MatmulConverter : public OpConversionPattern<linalg::MatmulOp> {
   MatmulConverter(MLIRContext *context)
-      : OpConversionPattern<linalg::MatmulOp>(linalg::MatmulOp::getOperationName(), /* benefit */ 100, context) {}
+      : OpConversionPattern<linalg::MatmulOp>(context, /* benefit */ 100) {}
 
   using OpConversionPattern<linalg::MatmulOp>::OpConversionPattern;
 
