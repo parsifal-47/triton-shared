@@ -218,8 +218,15 @@ public:
   }
 
   LogicalResult convertArgsToMemrefType() {
-    auto moduleOp = getOperation();
+    auto *transformDialect = context.getOrLoadDialect<mlir::transform::TransformDialect>();
 
+    if (transformDialect->lookupOperation("transform.apply_patterns.tensor.decompose_concat")) {
+      llvm::outs() << "Operation 'transform.apply_patterns.tensor.decompose_concat' is registered.\n";
+    } else {
+      llvm::errs() << "Operation 'transform.apply_patterns.tensor.decompose_concat' is NOT registered.\n";
+    }
+
+    auto moduleOp = getOperation();
     RewritePatternSet patterns(&getContext());
     ConversionTarget target(getContext());
     TritonFunctionSignatureConverter typeConverter;
