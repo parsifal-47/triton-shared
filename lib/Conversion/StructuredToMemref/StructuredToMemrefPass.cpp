@@ -348,15 +348,17 @@ public:
     MLIRContext *context = &getContext();
     OpBuilder builder(module.getBodyRegion());
 
-    builder.setInsertionPointToStart(&module.getBodyRegion().front());
-    auto transformOp = builder.create<transform::ApplyDecomposeTensorConcatPatternsOp>(
-        funcOp.getLoc());
+    // Iterate over all functions in the module
+    for (auto funcOp : module.getOps<func::FuncOp>()) {
+      builder.setInsertionPointToStart(&module.getBodyRegion().front());
+      auto transformOp = builder.create<transform::ApplyDecomposeTensorConcatPatternsOp>(
+          funcOp.getLoc());
 
-    if (!transformOp) {
-      module.emitError("Failed to apply decompose concat patterns to function: " + funcOp.getName().str());
-      return failure();
+      if (!transformOp) {
+        module.emitError("Failed to apply decompose concat patterns to function: " + funcOp.getName().str());
+        return failure();
+      }
     }
-
     return success();
   }
 
