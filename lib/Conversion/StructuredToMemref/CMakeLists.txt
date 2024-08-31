@@ -13,7 +13,7 @@ add_triton_library(StructuredToMemref
   MLIRMathDialect
   MLIRPass
   MLIRTensorDialect
-  MLIRTransformDialect
+  MLIRTensorTransformOps
   MLIRTransforms
   MLIRSupport
   TritonIR
