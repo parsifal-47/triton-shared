@@ -218,6 +218,7 @@ public:
   }
 
   LogicalResult convertArgsToMemrefType() {
+    auto context = &getContext();
     auto *transformDialect = context.getOrLoadDialect<mlir::transform::TransformDialect>();
 
     if (transformDialect->lookupOperation("transform.apply_patterns.tensor.decompose_concat")) {
