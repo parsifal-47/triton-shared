@@ -26,6 +26,7 @@
 #include "mlir/Dialect/Linalg/IR/Linalg.h"
 #include "mlir/Dialect/SCF/Transforms/Patterns.h"
 #include "mlir/Dialect/Tensor/TransformOps/TensorTransformOps.h"
+#include "mlir/Dialect/Transform/IR/TransformDialect.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"
 #include "triton/Dialect/Triton/IR/Types.h"
@@ -211,7 +212,7 @@ public:
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<func::FuncDialect, arith::ArithDialect, math::MathDialect,
                     linalg::LinalgDialect, affine::AffineDialect,
-                    scf::SCFDialect, tensor::TensorDialect,
+                    scf::SCFDialect, tensor::TensorDialect, transform::TransformDialect,
                     bufferization::BufferizationDialect, triton::TritonDialect,
                     ttx::TritonTilingExtDialect, memref::MemRefDialect>();
   }
