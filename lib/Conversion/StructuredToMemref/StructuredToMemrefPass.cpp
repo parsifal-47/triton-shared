@@ -347,6 +347,11 @@ public:
   LogicalResult decomposeTensorConcat() {
     ModuleOp module = getOperation();
     MLIRContext *context = &getContext();
+
+    // Ensure that the required dialects are loaded
+    context->getOrLoadDialect<mlir::transform::TransformDialect>();
+    context->getOrLoadDialect<mlir::tensor::TensorDialect>();
+
     OpBuilder builder(module.getBodyRegion());
 
     // Iterate over all functions in the module
