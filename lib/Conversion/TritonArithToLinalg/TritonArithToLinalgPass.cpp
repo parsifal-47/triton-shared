@@ -167,7 +167,6 @@ public:
       tensor::populateDecomposeTensorConcatPatterns(patterns);
 
       if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns)))) {
-        func.emitError("Failed to apply tensor decomposition patterns.");
         signalPassFailure();
       }
     }
