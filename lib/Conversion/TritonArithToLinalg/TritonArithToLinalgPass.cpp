@@ -156,10 +156,20 @@ public:
       }
     }
 
-    tensor::populateDecomposeTensorConcatPatterns(patterns);
-
     if (failed(applyPartialConversion(moduleOp, target, std::move(patterns)))) {
       signalPassFailure();
+    }
+
+    {
+      MLIRContext *context = &getContext();
+      RewritePatternSet patterns(context);
+
+      tensor::populateDecomposeTensorConcatPatterns(patterns);
+
+      if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns)))) {
+        func.emitError("Failed to apply tensor decomposition patterns.");
+        signalPassFailure();
+      }
     }
 
     // Convert tt.func and tt.return into func's counterparts
