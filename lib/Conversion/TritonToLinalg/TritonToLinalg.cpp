@@ -10,6 +10,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/MathExtras.h"
+#include "mlir/Dialect/Tensor/Transforms/Transforms.h"
 
 #include "triton-shared/Conversion/TritonToLinalg/TritonToLinalg.h"
 
@@ -88,4 +89,6 @@ void mlir::triton::populateTritonToLinalgConversionPatterns(
   // PatternBenefit will result in element-wise meta ops being converted to
   // linalg.generic ops.
   linalg::populateElementwiseToLinalgConversionPatterns(patterns);
+
+  tensor::populateDecomposeTensorConcatPatterns(patterns);
 }
