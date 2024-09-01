@@ -72,7 +72,7 @@ class TritonArithToLinalgPass
     }
   }
 
-  LogicalResult applyTensorConcatDecomposition() const {
+  LogicalResult applyTensorConcatDecomposition() {
     auto moduleOp = getOperation();
     MLIRContext *context = &getContext();
     RewritePatternSet patterns(context);
