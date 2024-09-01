@@ -407,7 +407,7 @@ public:
     triton::populateStructuredToMemrefConversionPatterns(patterns,
                                                          loopTypeConverter);
 //    patterns.insert<tensor::DecomposeConcatPattern>(patterns.getContext());
-    populateTensorDecomposeConcatPatterns(patterns, patterns.getContext());
+    tensor::populateDecomposeTensorConcatPatterns(patterns, patterns.getContext());
 
     if (failed(applyPartialConversion(moduleOp, target, std::move(patterns)))) {
       signalPassFailure();
