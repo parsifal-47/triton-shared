@@ -72,6 +72,19 @@ class TritonArithToLinalgPass
     }
   }
 
+  LogicalResult applyTensorConcatDecomposition() const {
+    auto moduleOp = getOperation();
+    MLIRContext *context = &getContext();
+    RewritePatternSet patterns(context);
+
+    tensor::populateDecomposeTensorConcatPatterns(patterns);
+
+    if (failed(applyPatternsAndFoldGreedily(moduleOp, std::move(patterns)))) {
+      return failure();
+    }
+    return success();
+  }
+
 public:
   void getDependentDialects(DialectRegistry &registry) const override {
     registry
@@ -160,15 +173,8 @@ public:
       signalPassFailure();
     }
 
-    {
-      MLIRContext *context = &getContext();
-      RewritePatternSet patterns(context);
-
-      tensor::populateDecomposeTensorConcatPatterns(patterns);
-
-      if (failed(applyPatternsAndFoldGreedily(moduleOp, std::move(patterns)))) {
-        signalPassFailure();
-      }
+    if (failed(applyTensorConcatDecomposition())) {
+      signalPassFailure();
     }
 
     // Convert tt.func and tt.return into func's counterparts
