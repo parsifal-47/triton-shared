@@ -353,7 +353,7 @@ public:
     for (auto funcOp : module.getOps<func::FuncOp>()) {
       builder.setInsertionPointToStart(&module.getBodyRegion().front());
       auto transformOp = builder.create<transform::ApplyDecomposeTensorConcatPatternsOp>(
-          funcOp.getLoc(), funcOp.getOperation());
+          funcOp.getLoc(), TypeRange{}, funcOp.getOperation());
 
       if (!transformOp) {
         module.emitError("Failed to apply decompose concat patterns to function: " + funcOp.getName().str());
