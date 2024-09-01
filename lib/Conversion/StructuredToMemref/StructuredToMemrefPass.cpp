@@ -343,7 +343,7 @@ public:
     return success();
   }
 
-  LogicalResult decomposeTensorConcat() {
+/*  LogicalResult decomposeTensorConcat() {
     ModuleOp module = getOperation();
     MLIRContext *context = &getContext();
 
@@ -361,7 +361,7 @@ public:
       }
     }
     return success();
-  }
+  }*/
 
   void runOnOperation() override {
     auto moduleOp = getOperation();
@@ -376,10 +376,10 @@ public:
       return;
     }
 
-    if (failed(decomposeTensorConcat())) {
+/*    if (failed(decomposeTensorConcat())) {
       signalPassFailure();
       return;
-    }
+    }*/
 
     RewritePatternSet patterns(&getContext());
     ConversionTarget target(getContext());
@@ -405,6 +405,7 @@ public:
 
     triton::populateStructuredToMemrefConversionPatterns(patterns,
                                                          loopTypeConverter);
+    tensor::populateDecomposeConcatPatterns(patterns, patterns.getContext());
 
     if (failed(applyPartialConversion(moduleOp, target, std::move(patterns)))) {
       signalPassFailure();
