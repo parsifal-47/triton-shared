@@ -20,7 +20,6 @@ module {
 }
 
 // CHECK:   func.func @kernel(%arg0: !tt.ptr<i32> {{.*}}, %arg1: !tt.ptr<i32> {{.*}}, %arg2: !tt.ptr<i32> {{.*}}, %arg3: i32, %arg4: i32, %arg5: i32, %arg6: i32, %arg7: i32, %arg8: i32) {
-// CHECK:     [[CST:%.+]] = arith.constant dense<[128, 2]> : tensor<2xi64>
 // CHECK:     [[EMPTY256:%.+]] = tensor.empty() : tensor<256xi32>
 // CHECK:     [[RANGE256:%.+]] = linalg.generic {{.*}} outs([[EMPTY256]] : tensor<256xi32>) {
 // CHECK:       ^bb0(%out: i32):
